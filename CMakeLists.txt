@@ -40,3 +40,7 @@ add_executable(game_server_tests ${game_server_tests_SRC})
 # target_include_directories уже не нужен - он добавится автоматически из зависимой библиотеки.
 target_link_libraries(game_server model_lib)
 target_link_libraries(game_server_tests PRIVATE Catch2::Catch2WithMain model_lib)
+
+set(CMAKE_INSTALL_PREFIX "/opt/asio_game/bin")
+
+install(TARGETS game_server DESTINATION "${CMAKE_INSTALL_PREFIX}")

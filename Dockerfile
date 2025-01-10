@@ -34,11 +34,18 @@ RUN python3 -m pip config set global.break-system-packages true && pip install c
 
 # Создаем default профиль для conan с поддержкой C++23
 ADD ./conan/default /home/game/.conan2/profiles/
-# Копируем в контейнер список зависимостей для сборки 
-RUN mkdir -p /home/game/asio_game/conan
-ADD ./conan/conanfile.py /home/game/asio_game/conan
-RUN chown -R game:game /home/game
+# Создаем каталоги для сборки и работы приложения
+RUN mkdir -p /home/game/asio_game/conan && \
+    mkdir -p /opt/asio_game/bin && \
+    mkdir -p /opt/asio_game/static && \
+    mkdir -p /opt/asio_game/data
 
+# Копируем в контейнер список зависимостей для сборки 
+ADD ./conan/conanfile.py /home/game/asio_game/conan
+
+RUN chown -R game:game /home/game && \
+    chown -R game:game /opt/asio_game/*
+# Меняем пользователя в контейнере
 USER game
 
 # Собираем отсутвующие зависимости в контейнере, будет сгенерирован кеш с артефактами сборок
@@ -46,30 +53,9 @@ RUN cd /home/game/asio_game/conan && \
     conan install . --build=missing -s build_type=Release && \
     conan install . --build=missing -s build_type=Debug
 
-
-#RUN cd /app/build && \
-#    cmake -DCMAKE_RUN_FROM_DOCKER_FILE=1 -DCMAKE_BUILD_TYPE=Release .. && \
-#    -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake && \
-#    cmake --build . --parallel
-
-# Так работает генерация
-#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../conan_toolchain.cmake ..
-
-#cmake -DCMAKE_RUN_FROM_DOCKER_FILE=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../conan_toolchain.cmake .. && \
-#    cmake --build . --parallel
-
-# Второй контейнер в том же докерфайле
-#FROM ubuntu:24.04 as run
-
-# Создадим пользователя www
-#RUN groupadd -r www && useradd -r -g www www
-#USER www
-
-# Скопируем приложение со сборочного контейнера в директорию /app.
-# Не забываем также папку data, она пригодится.
-#COPY --from=build /app/build/bin/game_server /app/
-#COPY ./data /app/data
-#COPY ./static /app/static
+# Копируем в контейнер статические файлы фронтенда и конфига
+ADD ./static /opt/asio_game/static
+ADD ./data /opt/asio_game/data
 
 # Запускаем игровой сервер
 #ENTRYPOINT ["/app/game_server", "/app/data/config.json", "/app/static"]
