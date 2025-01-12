@@ -24,7 +24,11 @@ RUN apt update -yq && apt install -y --no-install-recommends \
     python3-pip \
     pipx \
     cmake \
-    sudo
+    sudo \
+    procps \
+    net-tools \
+    locales \
+    postgresql postgresql-contrib
 
 # Для новых диструбутивов Linux разрешаем ломать всю систему питоном
 RUN python3 -m pip config set global.break-system-packages true && pip install conan
@@ -45,6 +49,9 @@ ADD ./conan/conanfile.py /home/game/asio_game/conan
 
 RUN chown -R game:game /home/game && \
     chown -R game:game /opt/asio_game/*
+# Задаем пароль пользователя и добавляем пользователя в группу sudo
+RUN echo 'game:123456' | chpasswd && usermod -aG sudo game
+
 # Меняем пользователя в контейнере
 USER game
 
