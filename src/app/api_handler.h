@@ -11,7 +11,7 @@ namespace api_handler
 namespace sys   = boost::system;
 namespace beast = boost::beast;
 namespace http  = beast::http;
-namespace net   = boost::asio;
+namespace asio  = boost::asio;
 namespace json  = boost::json;
 
 using StringResponse = http::response<http::string_body>;
@@ -40,7 +40,7 @@ class ApiHandler
 
 public:
 
-    ApiHandler(model::Game &game, db::ConnectionPool & connection_pool);
+    ApiHandler(model::Game &game, db::ConnectionPool * connection_pool);
     
     StringResponse HandleApiRequest(http::verb method,
                                     std::string_view target,
@@ -129,7 +129,7 @@ private:
 private:
 
     ApplicationPtr app_;
-    db::ConnectionPool & connection_pool_;
+    db::ConnectionPool * connection_pool_ = nullptr;
 };
 
 }

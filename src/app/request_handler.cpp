@@ -58,7 +58,7 @@ FileResponse MakeFileResponse(http::status                status,
 RequestHandler::RequestHandler(Strand api_strand,
                                std::filesystem::path path_static,
                                model::Game &game,
-                               db::ConnectionPool & connection_pool)
+                               db::ConnectionPool * connection_pool)
               : api_strand_(std::move(api_strand))
               , path_static_(std::move(path_static))
 {

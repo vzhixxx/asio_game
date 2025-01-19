@@ -47,7 +47,7 @@ public:
 
     private:
         std::shared_ptr<pqxx::connection> conn_;
-        PoolType* pool_;
+        PoolType* pool_ = nullptr;
     };
 
     // ConnectionFactory is a functional object returning std::shared_ptr<pqxx::connection>

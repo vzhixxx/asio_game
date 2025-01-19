@@ -17,6 +17,7 @@ RUN apt update -yq && apt install -y --no-install-recommends \
     rsync \
     gdbserver \
     mc \
+    nano \
     strace \
     ltrace \
     linux-perf \
@@ -27,6 +28,7 @@ RUN apt update -yq && apt install -y --no-install-recommends \
     sudo \
     procps \
     net-tools \
+    systemd \
     locales \
     postgresql postgresql-contrib
 

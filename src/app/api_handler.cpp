@@ -27,7 +27,7 @@ namespace api_handler
     }
     
 
-    ApiHandler::ApiHandler(model::Game &game, db::ConnectionPool & connection_pool)
+    ApiHandler::ApiHandler(model::Game &game, db::ConnectionPool * connection_pool)
               : connection_pool_(connection_pool)
     {
         app_ = std::make_unique<app::Application>(game, connection_pool);
@@ -262,15 +262,17 @@ namespace api_handler
         if (maxItems <= db::MAX_NUM_RECORD_ITEMS) {
             json::array reply;
 
-            auto conn_wrp = connection_pool_.GetConnection();
-            auto records = db::FetchRecords(*conn_wrp, offset, maxItems);
-            for (const auto & item : records) {
-                json::object p;
-                p["name"sv] = item.name;
-                p["score"sv] = item.score;
-                p["playTime"] = item.playtime;
+            if (connection_pool_) {
+                auto conn_wrp = connection_pool_->GetConnection();
+                auto records = db::FetchRecords(*conn_wrp, offset, maxItems);
+                for (const auto & item : records) {
+                    json::object p;
+                    p["name"sv] = item.name;
+                    p["score"sv] = item.score;
+                    p["playTime"] = item.playtime;
 
-                reply.push_back(std::move(p));
+                    reply.push_back(std::move(p));
+                }
             }
 
             return MakeStringResponse(http::status::ok,

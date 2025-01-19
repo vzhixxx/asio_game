@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 
+#set(CMAKE_COLOR_DIAGNOSTICS ON CACHE BOOL "Enable color diagnostics")
+message("CMAKE_COLOR_DIAGNOSTICS=${CMAKE_COLOR_DIAGNOSTICS}")
+
 # Используем toolchain файл из образа Docker
 include ($ENV{HOME}/asio_game/conan/conan_toolchain.cmake)
 

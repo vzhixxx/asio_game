@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "/opt/asio_game/bin/game_server",
-            "args": ["/opt/asio_game/data/config.json", "/opt/asio_game/static"],
+            "args": ["--config-file", "/opt/asio_game/data/config.json", "--www-root", "/opt/asio_game/static"],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",
             "environment": [],

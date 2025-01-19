@@ -9,7 +9,7 @@ using namespace std::string_view_literals;
 namespace http_server
 {
 
-SessionBase::SessionBase(tcp::socket&& socket)
+SessionBase::SessionBase(asio::ip::tcp::socket&& socket)
            : stream_(std::move(socket))
 {
 
@@ -19,8 +19,8 @@ void SessionBase::Run()
 {
     // Вызываем метод Read, используя executor объекта stream_.
     // Таким образом вся работа со stream_ будет выполняться, используя его executor
-    net::dispatch(stream_.get_executor(),
-                  beast::bind_front_handler(&SessionBase::Read, GetSharedThis()));
+    asio::dispatch(stream_.get_executor(),
+                   beast::bind_front_handler(&SessionBase::Read, GetSharedThis()));
 }
 
 void SessionBase::Read()
@@ -63,7 +63,7 @@ void SessionBase::OnWrite(bool close,
 
 void SessionBase::Close()
 {
-    stream_.socket().shutdown(tcp::socket::shutdown_send);
+    stream_.socket().shutdown(asio::ip::tcp::socket::shutdown_send);
 }
 
 }  // namespace http_server

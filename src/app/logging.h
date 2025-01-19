@@ -39,8 +39,8 @@ namespace server_logging
     namespace json     = boost::json;
     namespace beast    = boost::beast;
     namespace http     = beast::http;
-    namespace net      = boost::asio;
-    using tcp          = net::ip::tcp;
+    namespace asio     = boost::asio;
+    
 
     void Formatter(logging::record_view const& rec, logging::formatting_ostream& strm);
 
@@ -64,7 +64,7 @@ namespace server_logging
         }
 
         template <typename Body, typename Allocator, typename Send>
-        void operator()(const tcp::endpoint & endpoint,
+        void operator()(const asio::ip::tcp::endpoint & endpoint,
                         http::request<Body, http::basic_fields<Allocator>>&& req,
                         Send&& send)
         {
@@ -95,7 +95,7 @@ namespace server_logging
     private:
 
         template <typename Body, typename Allocator>
-        void LogRequest(const tcp::endpoint & endpoint, const http::request<Body, http::basic_fields<Allocator>> & req)
+        void LogRequest(const asio::ip::tcp::endpoint & endpoint, const http::request<Body, http::basic_fields<Allocator>> & req)
         {
             using namespace std::literals;
 
@@ -109,7 +109,7 @@ namespace server_logging
         }
 
         template <typename Body, typename Fields>
-        void LogResponse(const tcp::endpoint & endpoint, const TimePoint & tpBegin, const http::response<Body, Fields> & response)
+        void LogResponse(const asio::ip::tcp::endpoint & endpoint, const TimePoint & tpBegin, const http::response<Body, Fields> & response)
         {
             using namespace std::literals;
             using namespace std::chrono;

@@ -9,13 +9,13 @@
 
 namespace model
 {
-namespace net = boost::asio;
-namespace sys = boost::system;
+namespace asio = boost::asio;
+namespace sys  = boost::system;
 
 class Ticker : public std::enable_shared_from_this<Ticker>
 {
 public:
-    using Strand  = net::strand<net::io_context::executor_type>;
+    using Strand  = asio::strand<asio::io_context::executor_type>;
     using Handler = std::function<void(std::chrono::milliseconds delta)>;
 
     Ticker(Strand strand, std::chrono::milliseconds period, Handler handler)
@@ -53,7 +53,7 @@ private:
     }
 
     Strand strand_;
-    net::steady_timer timer_{strand_};
+    asio::steady_timer timer_{strand_};
     std::chrono::milliseconds period_{};
     Handler handler_;
 

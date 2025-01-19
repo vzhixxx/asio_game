@@ -22,6 +22,8 @@
         "vscode": {
             "extensions": [
                 "ms-vscode.cpptools-extension-pack",
+                "SteveBushResearch.BuildOutputColorizer",
+                "ms-vscode.cmake-tools"
             ]
         }
     },

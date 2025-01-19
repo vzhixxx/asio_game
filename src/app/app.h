@@ -11,7 +11,7 @@ class Application
 {
 public:
 
-    Application(model::Game & game, db::ConnectionPool & connection_pool);
+    Application(model::Game & game, db::ConnectionPool * connection_pool);
 
     [[nodiscard]] model::Map * FindMap(const model::Map::Id & id) const noexcept {
         return game_.FindMap(id);
@@ -46,7 +46,7 @@ public:
 private:
 
     model::Game & game_;
-    db::ConnectionPool & connection_pool_;
+    db::ConnectionPool * connection_pool_ = nullptr;
 
 };
 

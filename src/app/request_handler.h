@@ -7,8 +7,8 @@ namespace http_handler
 namespace sys   = boost::system;    
 namespace beast = boost::beast;
 namespace http  = beast::http;
-namespace net   = boost::asio;
-using tcp       = net::ip::tcp;
+namespace asio  = boost::asio;
+
 
 using StringResponse = api_handler::StringResponse;
 using FileResponse   = http::response<http::file_body>;
@@ -55,19 +55,19 @@ class RequestHandler : public std::enable_shared_from_this<RequestHandler>
 
 public:
 
-    using Strand = net::strand<net::io_context::executor_type>;
+    using Strand = asio::strand<asio::io_context::executor_type>;
 
     RequestHandler(Strand api_strand,
                    std::filesystem::path path_static,
                    model::Game& game,
-                   db::ConnectionPool & connection_pool);
+                   db::ConnectionPool * connection_pool);
 
                     RequestHandler  (const RequestHandler&) = delete;
     RequestHandler& operator=       (const RequestHandler&) = delete;
 
 
     template <typename Body, typename Allocator, typename Send>
-    void operator()(const tcp::endpoint & endpoint,
+    void operator()(const asio::ip::tcp::endpoint & endpoint,
                     http::request<Body, http::basic_fields<Allocator>> && req,
                     Send&& send)
     {
@@ -103,7 +103,7 @@ public:
                 }
             };
             
-            return net::dispatch(api_strand_, handle);
+            return asio::dispatch(api_strand_, handle);
         }
         else if (http::verb::get == req.method() || http::verb::head == req.method())
         {

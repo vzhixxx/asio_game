@@ -8,10 +8,9 @@
 
 namespace http_server
 {
-namespace net        = boost::asio;
-namespace beast      = boost::beast;
-namespace http       = beast::http;
-using tcp            = net::ip::tcp;
+namespace asio  = boost::asio;
+namespace beast = boost::beast;
+namespace http  = beast::http;
 
 
 class SessionBase
@@ -30,7 +29,7 @@ protected:
     using SessionBasePtr = std::shared_ptr<SessionBase>;
     using HttpRequest    = http::request<http::string_body>;
 
-    explicit SessionBase (tcp::socket     && socket);
+    explicit SessionBase (asio::ip::tcp::socket     && socket);
     
 
 
@@ -58,7 +57,7 @@ private:
                   size_t             bytes_written);
     void Close   ();
 
-    virtual void HandleRequest (const tcp::endpoint & endpoint, HttpRequest && request) = 0;
+    virtual void HandleRequest (const asio::ip::tcp::endpoint & endpoint, HttpRequest && request) = 0;
     virtual void ReportError (beast::error_code ec, std::string_view what) = 0;
 
     virtual SessionBasePtr GetSharedThis () = 0;
@@ -77,14 +76,14 @@ class Session : public SessionBase, public std::enable_shared_from_this<Session<
 {
 public:
     template <typename Handler>
-    Session(tcp::socket&& socket, Handler&& request_handler)
+    Session(asio::ip::tcp::socket&& socket, Handler&& request_handler)
         : SessionBase(std::move(socket))
         , request_handler_(std::forward<Handler>(request_handler)) {
     }
 
 private:
 
-    void HandleRequest(const tcp::endpoint & endpoint, HttpRequest && request) override {
+    void HandleRequest(const asio::ip::tcp::endpoint & endpoint, HttpRequest && request) override {
         // Захватываем умный указатель на текущий объект Session в лямбде,чтобы продлить время жизни сессии до вызова лямбды.
         // Используется generic-лямбда функция, способная принять response произвольного типа
 
@@ -113,9 +112,9 @@ class Listener : public std::enable_shared_from_this<Listener<RequestHandler> >
 {
 public:
     template <typename Handler>
-    Listener(net::io_context& ioc, const tcp::endpoint& endpoint, Handler&& request_handler)
+    Listener(asio::io_context& ioc, const asio::ip::tcp::endpoint& endpoint, Handler&& request_handler)
         : ioc_(ioc)
-        , acceptor_(net::make_strand(ioc))  // Обработчики асинхронных операций acceptor_ будут вызываться в своём strand
+        , acceptor_(asio::make_strand(ioc))  // Обработчики асинхронных операций acceptor_ будут вызываться в своём strand
         , request_handler_(std::forward<Handler>(request_handler))
     {
         // Открываем acceptor, используя протокол (IPv4 или IPv6), указанный в endpoint
@@ -125,13 +124,13 @@ public:
         // чтобы компьютеры могли обменяться завершающими пакетами данных.
         // Однако это может помешать повторно открыть сокет в полузакрытом состоянии.
         // Флаг reuse_address разрешает открыть сокет, когда он "наполовину закрыт"
-        acceptor_.set_option(net::socket_base::reuse_address(true));
+        acceptor_.set_option(asio::socket_base::reuse_address(true));
         // Привязываем acceptor к адресу и порту endpoint
         acceptor_.bind(endpoint);
 
         // Переводим acceptor в состояние, в котором он способен принимать новые соединения
         // Благодаря этому новые подключения будут помещаться в очередь ожидающих соединений
-        acceptor_.listen(net::socket_base::max_listen_connections);
+        acceptor_.listen(asio::socket_base::max_listen_connections);
     }
 
     void Run()
@@ -146,7 +145,7 @@ private:
         acceptor_.async_accept(
             // Передаём последовательный исполнитель, в котором будут вызываться обработчики
             // асинхронных операций сокета
-            net::make_strand(ioc_),
+            asio::make_strand(ioc_),
             // С помощью bind_front_handler создаём обработчик, привязанный к методу OnAccept
             // текущего объекта.
             // Так как Listener — шаблонный класс, нужно подсказать компилятору, что
@@ -159,7 +158,7 @@ private:
     }
 
     // Метод socket::async_accept создаст сокет и передаст его передан в OnAccept
-    void OnAccept (boost::system::error_code ec, tcp::socket socket)
+    void OnAccept (boost::system::error_code ec, asio::ip::tcp::socket socket)
     {
         using namespace std::literals;
 
@@ -172,21 +171,21 @@ private:
         }
     }
 
-    void AsyncRunSession (tcp::socket&& socket)
+    void AsyncRunSession (asio::ip::tcp::socket&& socket)
     {
         auto pSession = std::make_shared<Session<RequestHandler>>(std::move(socket), request_handler_);
         pSession->Run();
     }
 
 
-    net::io_context   & ioc_;
-    tcp::acceptor       acceptor_;
-    RequestHandler      request_handler_;
+    asio::io_context        & ioc_;
+    asio::ip::tcp::acceptor   acceptor_;
+    RequestHandler            request_handler_;
 };
 
 
 template <typename RequestHandler>
-void ServeHttp(net::io_context& ioc, const tcp::endpoint& endpoint, RequestHandler&& handler)
+void ServeHttp(asio::io_context& ioc, const asio::ip::tcp::endpoint& endpoint, RequestHandler&& handler)
 {
     // При помощи decay_t исключим ссылки из типа RequestHandler,
     // чтобы Listener хранил RequestHandler по значению

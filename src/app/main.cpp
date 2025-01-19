@@ -19,7 +19,7 @@ using namespace std::chrono;
 using namespace std::chrono_literals;
 
 namespace fs       = std::filesystem;
-namespace net      = boost::asio;
+namespace asio     = boost::asio;
 namespace sys      = boost::system;
 namespace logging  = boost::log;
 namespace keywords = boost::log::keywords;
@@ -99,17 +99,24 @@ int main(int argc, const char* argv[])
     server_logging::InitBoostLogFilter();
 
     const char* db_url = std::getenv("DB_URL");
+#if 0
     if (!db_url) {
         return EXIT_FAILURE;
     }
+#endif
 
     try 
     {   
         if (auto args = ParseCommandLine(argc, argv); args)
         {
-            db::ConnectionPool conn_pool{2, [db_url] {
-                return std::make_shared<pqxx::connection>(db_url);
-            }};
+            std::unique_ptr<db::ConnectionPool> conn_pool;
+            if (db_url && *db_url != '\0') {
+                auto connection_factory = [db_url] {
+                    return std::make_shared<pqxx::connection>(db_url);
+                };
+
+                conn_pool = std::make_unique<db::ConnectionPool>(2, connection_factory);
+            }
 
             std::filesystem::path serverBin  = argv[0];
             std::filesystem::path configPath = fs::weakly_canonical(serverBin.parent_path() / args->config_file);
@@ -121,26 +128,23 @@ int main(int argc, const char* argv[])
             pGame->SetTickPeriod(args->tick_period);
 
             // 2. Инициализируем io_context
-            unsigned num_threads = std::thread::hardware_concurrency();
-            net::io_context ioc(static_cast<int>(num_threads));
+            unsigned num_threads = 1; // std::thread::hardware_concurrency();
+            asio::io_context io_context(static_cast<int>(num_threads));
 
             // 3. Добавляем асинхронный обработчик сигналов SIGINT и SIGTERM
-            net::signal_set signals(ioc, SIGINT, SIGTERM);
-            signals.async_wait([&ioc](const sys::error_code& ec, [[maybe_unused]] int signal_number)
+            asio::signal_set signals(io_context, SIGINT, SIGTERM);
+            signals.async_wait([&io_context](const sys::error_code& ec, [[maybe_unused]] int signal_number)
             {
                 if (!ec)
-                    ioc.stop();
+                    io_context.stop();
             });
 
             // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
             // strand для выполнения запросов к API
-            auto api_strand = net::make_strand(ioc);
+            auto api_strand = asio::make_strand(io_context);
 
             // Создаём обработчик запросов в куче, управляемый shared_ptr
-            auto handler = std::make_shared<http_handler::RequestHandler>(api_strand,
-                                                                                       staticPath,
-                                                                                       *pGame,
-                                                                                       conn_pool);
+            auto handler = std::make_shared<http_handler::RequestHandler>(api_strand, staticPath, *pGame, conn_pool.get());
 
             server_logging::LoggingRequestHandler<http_handler::RequestHandler> logging_handler(std::move(handler));
 
@@ -157,10 +161,10 @@ int main(int argc, const char* argv[])
 
             // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
             constexpr std::string_view svAddress = "0.0.0.0"sv;
-            constexpr net::ip::port_type port    = 8080;
-            const auto address                   = net::ip::make_address(svAddress);
+            constexpr asio::ip::port_type port   = 8080;
+            const auto address                   = asio::ip::make_address(svAddress);
 
-            http_server::ServeHttp(ioc, {address, port}, logging_handler);
+            http_server::ServeHttp(io_context, {address, port}, logging_handler);
 
             // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
             //std::cout << "Server has started..."sv << std::endl;
@@ -174,8 +178,8 @@ int main(int argc, const char* argv[])
             }
 
             // 6. Запускаем обработку асинхронных операций
-            RunWorkers(std::max(1u, num_threads), [&ioc] {
-                ioc.run();
+            RunWorkers(num_threads, [&io_context] {
+                io_context.run();
             });
         }
     }   
